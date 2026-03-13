@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Michela Murgia — NNorAI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;line-height:1.7}
+.hero{background:linear-gradient(135deg,#16213e,#0f3460);padding:4rem 2rem;text-align:center}
+.avatar{width:140px;height:140px;border-radius:50%;object-fit:cover;border:4px solid #e94560;margin-bottom:1.5rem;background:#333}
+.avatar-placeholder{width:140px;height:140px;border-radius:50%;background:#e94560;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 1.5rem}
+h1{font-size:2.4rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.tagline{color:#e94560;font-size:1.1rem;margin-bottom:1rem}
+.container{max-width:860px;margin:0 auto;padding:2rem}
+.card{background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:1.8rem;margin-bottom:1.5rem}
+.card h2{color:#e94560;font-size:1.2rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card p{color:#c0c0c0;font-size:.95rem}
+.news-item{border-bottom:1px solid #0f3460;padding:.8rem 0}
+.news-item:last-child{border-bottom:none}
+.news-item .source{color:#e94560;font-size:.8rem}
+.news-item a{color:#7eb8f7;text-decoration:none}
+.news-item a:hover{text-decoration:underline}
+footer{text-align:center;padding:2rem;color:#555;font-size:.85rem}
+footer a{color:#e94560}
+</style></head>
+<body>
+<div class="hero">
+  <div class="avatar-placeholder">M</div>
+  <h1>Michela Murgia</h1>
+  <div class="tagline"></div>
+</div>
+<div class="container">
+  <div class="card">
+    <h2>📖 Biografia</h2>
+    <p>{{wiki_result.summary}}</p>
+  </div>
+  
+  <p style="margin-top:1rem;font-size:.85rem"><strong>🔗 Fonte:</strong> <a href="https://it.wikipedia.org/wiki/Michela_Murgia" target="_blank" style="color:inherit">https://it.wikipedia.org/wiki/Michela_Murgia</a></p>
+</div>
+<footer>Generato da <a href="https://nnora.ai">NNorAI</a> · 13/03/2026</footer>
+</body></html>
