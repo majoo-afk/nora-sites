@@ -1,0 +1,141 @@
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Legale Avv. Rossi - Consulenza Legale</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            background-color: #1a2744;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        .hero {
+            background-color: #1a2744;
+            padding: 80px 0;
+            text-align: center;
+        }
+        .hero h1 {
+            color: #c9a84c;
+            font-size: 3em;
+        }
+        .cta {
+            background-color: #c9a84c;
+            color: #1a2744;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        .services, .about, .testimonials, .contact {
+            padding: 40px 0;
+            border-top: 1px solid #c9a84c;
+        }
+        .services h2, .about h2, .testimonials h2, .contact h2 {
+            color: #c9a84c;
+            margin-bottom: 20px;
+        }
+        .services p, .about p, .testimonials p {
+            color: #fff;
+        }
+        .about img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #1a2744;
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid #c9a84c;
+        }
+        .footer p {
+            margin: 0;
+            color: #c9a84c;
+        }
+        @media (min-width: 768px) {
+            .services, .about, .testimonials, .contact {
+                display: flex;
+                justify-content: space-between;
+            }
+            .services div, .about div, .testimonials div, .contact div {
+                flex: 1;
+                margin: 0 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <h1>Studio Legale Avv. Rossi</h1>
+            <a href="#contact" class="cta">Prenota Consulenza Gratuita</a>
+        </div>
+    </header>
+    
+    <section class="services container">
+        <h2>Servizi</h2>
+        <div>
+            <h3>Diritto Civile</h3>
+            <p>Consulenza e assistenza legale in materia di diritto civile.</p>
+        </div>
+        <div>
+            <h3>Diritto Penale</h3>
+            <p>Difesa e tutela legale nei procedimenti penali.</p>
+        </div>
+        <div>
+            <h3>Diritto del Lavoro</h3>
+            <p>Consulenza su contratti di lavoro e controversie lavorative.</p>
+        </div>
+        <div>
+            <h3>Diritto di Famiglia</h3>
+            <p>Assistenza in cause di separazione, divorzio e altro.</p>
+        </div>
+    </section>
+    
+    <section class="about container">
+        <h2>Chi Siamo</h2>
+        <div>
+            <p>Lo Studio Legale Avv. Rossi offre consulenza e assistenza legale personalizzata, garantendo professionalità e discrezione.</p>
+            <img src="https://www.example.com/foto_avvocato.jpg" alt="Avvocato Rossi">
+        </div>
+    </section>
+    
+    <section class="testimonials container">
+        <h2>Testimonianze</h2>
+        <div>
+            <p>"Un servizio eccellente e professionale. Altamente raccomandato!" - Cliente A</p>
+        </div>
+        <div>
+            <p>"L'Avv. Rossi ha risolto il mio caso con grande competenza." - Cliente B</p>
+        </div>
+    </section>
+    
+    <section id="contact" class="contact container">
+        <h2>Contatti</h2>
+        <div>
+            <p><strong>Indirizzo:</strong> Via Roma 1, Cagliari</p>
+            <p><strong>Telefono:</strong> +39 070 000000</p>
+            <p><strong>Email:</strong> info@studiolegalerossi.it</p>
+        </div>
+    </section>
+    
+    <footer class="footer">
+        <p>P.IVA: 01234567890</p>
+    </footer>
+</body>
+</html>
