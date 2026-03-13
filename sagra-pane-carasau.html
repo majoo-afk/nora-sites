@@ -10,81 +10,101 @@
             margin: 0;
             padding: 0;
             color: #333;
+            background-color: #fff8e1;
         }
+
         header {
-            background-color: #ffcc00;
-            color: #b30000;
+            background-color: #d32f2f;
+            color: #fff;
+            padding: 20px;
             text-align: center;
-            padding: 20px 0;
         }
+
         header h1 {
             margin: 0;
             font-size: 2.5em;
         }
-        .hero {
-            width: 100%;
-            max-height: 400px;
-            overflow: hidden;
+
+        header p {
+            margin: 10px 0 0;
+            font-size: 1.2em;
         }
-        .hero img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .container {
+
+        main {
             padding: 20px;
         }
-        h2 {
-            color: #b30000;
-            margin-top: 20px;
+
+        section {
+            margin-bottom: 40px;
         }
-        .section {
-            margin-bottom: 30px;
+
+        section h2 {
+            color: #d32f2f;
+            border-bottom: 2px solid #d32f2f;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
         }
-        footer {
-            background-color: #ffcc00;
-            color: #b30000;
+
+        .image-container {
             text-align: center;
-            padding: 10px 0;
+            margin: 20px 0;
         }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border: 5px solid #d32f2f;
+        }
+
+        .footer {
+            background-color: #fbc02d;
+            color: #d32f2f;
+            text-align: center;
+            padding: 10px;
+        }
+
         @media (min-width: 768px) {
-            .container {
-                max-width: 960px;
+            main {
+                max-width: 720px;
                 margin: 0 auto;
             }
         }
     </style>
 </head>
 <body>
-
-<header>
-    <h1>Sagra del Pane Carasau – Orgosolo 2026</h1>
-</header>
-
-<div class="hero">
-    <img src="https://loremflickr.com/1200/800/pane%2Ccarasau%2CSardegna?random=1" alt="Pane Carasau">
-</div>
-
-<div class="container">
-    <section class="section">
-        <h2>Programma e Orari</h2>
-        <p>Vieni a scoprire il ricco programma di eventi della Sagra del Pane Carasau, con dimostrazioni culinarie, degustazioni e tanto altro. Gli eventi inizieranno ogni giorno alle 10:00 e si concluderanno alle 22:00.</p>
-    </section>
-
-    <section class="section">
-        <h2>Stand Gastronomici</h2>
-        <p>Goditi il vero sapore della Sardegna con i nostri stand gastronomici che offrono una vasta gamma di prodotti tipici, tra cui il famoso pane carasau, formaggi locali, salumi e vini sardi.</p>
-    </section>
-
-    <section class="section">
-        <h2>Musica Folk</h2>
-        <p>Lasciati trasportare dalla musica tradizionale sarda con spettacoli di musica folk ogni sera. Un'esperienza unica per vivere l'atmosfera autentica della festa.</p>
-    </section>
-</div>
-
-<footer>
-    <p>Per ulteriori informazioni, contattaci al numero +39 123 456 7890 o visita il nostro sito web.</p>
-</footer>
-
+    <header>
+        <h1>Sagra del Pane Carasau</h1>
+        <p>Orgosolo 2026</p>
+    </header>
+    <main>
+        <section>
+            <h2>Descrizione Storica del Pane Carasau</h2>
+            <p>Il pane carasau è un pane tradizionale sardo, originario della Barbagia. È anche conosciuto come "carta da musica" per la sua sottigliezza e croccantezza. Tradizionalmente preparato dalle donne sarde, il pane carasau veniva cotto nei forni a legna ed era progettato per durare nel tempo, perfetto per i pastori durante i lunghi periodi lontani da casa.</p>
+        </section>
+        <section>
+            <h2>Programma</h2>
+            <ul>
+                <li><strong>10:00</strong> - Apertura degli stand gastronomici</li>
+                <li><strong>11:00</strong> - Laboratorio di preparazione del pane carasau</li>
+                <li><strong>13:00</strong> - Pranzo tradizionale sardo</li>
+                <li><strong>15:00</strong> - Esibizione di musica folk</li>
+                <li><strong>18:00</strong> - Chiusura della sagra</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Stand Gastronomici</h2>
+            <p>Vieni a gustare il miglior pane carasau insieme a una selezione di formaggi, salumi e vini tipici della Sardegna. Non perdere l'occasione di assaggiare le delizie preparate dai nostri esperti chef locali!</p>
+        </section>
+        <section>
+            <h2>Musica Folk</h2>
+            <p>La giornata sarà animata da spettacoli di musica folk con gruppi locali che vi faranno rivivere le tradizioni musicali della Sardegna. Un'esperienza che unisce cultura e divertimento, perfetta per tutta la famiglia!</p>
+        </section>
+        <div class="image-container">
+            <img src="https://loremflickr.com/1200/800/pane%2Ccarasau%2CSardegna?random=1" alt="Pane Carasau">
+        </div>
+    </main>
+    <footer class="footer">
+        <p>Informazioni pratiche: L'evento si terrà in Piazza del Popolo, Orgosolo. Per ulteriori dettagli, contattaci al numero 123-456789 o via email a info@sagradipanecarasau.org.</p>
+    </footer>
 </body>
 </html>
