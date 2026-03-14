@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -5,102 +6,92 @@
     <title>🎨 Generatore Immagini NORA</title>
     <style>
         body {
-            margin: 0;
-            font-family: 'Arial', sans-serif;
             background-color: #0f0f1a;
             color: #ffffff;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
         }
-
         header {
             text-align: center;
+            margin-bottom: 30px;
         }
-
         h1 {
             font-family: 'Playfair Display', serif;
             font-size: 2.5em;
-            margin: 0.5em 0;
-            color: #ffffff;
+            margin: 0;
         }
-
         h2 {
             font-size: 1.2em;
+            font-weight: normal;
             color: #a855f7;
         }
-
         .card {
-            background-color: #1a2744;
+            background-color: #1a1a2e;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            width: 90%;
             max-width: 500px;
+            text-align: center;
         }
-
         input[type="text"] {
-            width: calc(100% - 24px);
-            padding: 12px;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
             border-radius: 8px;
-            border: none;
-            margin-bottom: 20px;
+            border: 1px solid #444;
+            background-color: #2a2a40;
+            color: #ffffff;
             font-size: 1em;
-            outline: none;
         }
-
         button {
             background: linear-gradient(90deg, #7c3aed, #a855f7);
             color: #ffffff;
-            font-size: 1em;
-            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
+            padding: 15px 30px;
+            margin-top: 20px;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            font-size: 1.2em;
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
             transition: background 0.3s;
         }
-
         button:disabled {
-            background: #555;
+            background: #444;
             cursor: not-allowed;
         }
-
         #loader {
             display: none;
             align-items: center;
             justify-content: center;
             flex-direction: column;
+            padding: 20px;
         }
-
-        .spinner {
-            border: 4px solid rgba(124, 58, 237, 0.2);
-            border-top: 4px solid #7c3aed;
-            border-radius: 50%;
+        #loader div {
             width: 40px;
             height: 40px;
+            border: 4px solid #7c3aed;
+            border-top: 4px solid transparent;
+            border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 10px;
         }
-
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-
         #result-container {
             display: none;
             text-align: center;
         }
-
         #error-msg {
             display: none;
-            color: #f87171;
-            font-size: 1.1em;
+            text-align: center;
         }
     </style>
 </head>
@@ -109,47 +100,64 @@
         <h1>🎨 Generatore Immagini NORA</h1>
         <h2>Scrivi una parola, l'immagine appare qui</h2>
     </header>
-
     <div class="card">
         <input type="text" id="query-input" placeholder="Es: ferrari, tramonto, leone, montagna...">
         <button id="search-btn">Cerca Immagine 🔍</button>
     </div>
-
     <div id="loader">
-        <div class="spinner"></div>
+        <div></div>
         <p>Sto cercando l'immagine...</p>
     </div>
-
     <div id="result-container">
         <img id="result-image" alt="Risultato immagine">
         <p id="result-caption"></p>
     </div>
-
     <p id="error-msg"></p>
-
     <script>
+        const traduzioni = {
+            'cavallo':'horse','leone':'lion','cane':'dog','gatto':'cat','Ferrari':'ferrari',
+            'tramonto':'sunset','mare':'sea','montagna':'mountain','fiore':'flower',
+            'albero':'tree','foresta':'forest','città':'city','auto':'car','moto':'motorcycle',
+            'aereo':'airplane','nave':'ship','pizza':'pizza','gatto':'cat','farfalla':'butterfly',
+            'aquila':'eagle','lupo':'wolf','orso':'bear','tigre':'tiger','elefante':'elephant',
+            'giraffa':'giraffe','delfino':'dolphin','pinguino':'penguin','volpe':'fox',
+            'coniglio':'rabbit','uccello':'bird','pesce':'fish','serpente':'snake',
+            'sole':'sun','luna':'moon','stelle':'stars','neve':'snow','pioggia':'rain',
+            'deserto':'desert','spiaggia':'beach','lago':'lake','fiume':'river',
+            'castello':'castle','ponte':'bridge','torre':'tower','chiesa':'church',
+            'calcio':'football','basket':'basketball','tennis':'tennis','nuoto':'swimming',
+            'musica':'music','chitarra':'guitar','pianoforte':'piano','danza':'dance',
+            'cibo':'food','pane':'bread','frutta':'fruit','verdura':'vegetables'
+        };
+
+        function traduci(parola) {
+            const lower = parola.toLowerCase();
+            return traduzioni[lower] || parola;
+        }
+
         function searchImage() {
-            const query = document.getElementById('query-input').value.trim();
-            if (!query) { alert('Scrivi una parola!'); return; }
+            const queryOriginale = document.getElementById('query-input').value.trim();
+            if (!queryOriginale) { alert('Scrivi una parola!'); return; }
+            
+            const queryTradotta = queryOriginale.split(' ').map(p => traduci(p)).join(',');
+            
             document.getElementById('loader').style.display='flex';
             document.getElementById('result-container').style.display='none';
             document.getElementById('error-msg').style.display='none';
             document.getElementById('search-btn').disabled=true;
 
-            const seed = encodeURIComponent(query);
             const img = document.getElementById('result-image');
-
-            const imageUrl = 'https://source.unsplash.com/800x600/?' + seed + '&t=' + Date.now();
-
+            const imageUrl = 'https://source.unsplash.com/800x600/?' + encodeURIComponent(queryTradotta) + '&t=' + Date.now();
+            
             img.onload = function() {
                 document.getElementById('loader').style.display='none';
-                document.getElementById('result-caption').textContent = '🖼️ ' + query;
+                document.getElementById('result-caption').textContent = '🖼️ ' + queryOriginale;
                 document.getElementById('result-container').style.display='block';
                 document.getElementById('search-btn').disabled=false;
             };
             img.onerror = function() {
                 document.getElementById('loader').style.display='none';
-                document.getElementById('error-msg').textContent='❌ Nessuna immagine trovata per: ' + query;
+                document.getElementById('error-msg').textContent='❌ Nessuna immagine trovata per: ' + queryOriginale;
                 document.getElementById('error-msg').style.display='block';
                 document.getElementById('search-btn').disabled=false;
             };
