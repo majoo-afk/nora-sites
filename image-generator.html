@@ -6,116 +6,115 @@
     <title>🎨 Generatore Immagini NORA</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: sans-serif;
             background-color: #1a1a2e;
             color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
         }
         .container {
             text-align: center;
             max-width: 600px;
-            width: 90%;
+            padding: 20px;
+            border-radius: 8px;
         }
         h1 {
-            font-size: 2.5em;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #8a2387, #e94057, #f27121);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        h2 {
+            font-size: 1.2rem;
             margin-bottom: 20px;
         }
-        #queryInput {
+        input[type="text"] {
             width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 18px;
+            padding: 10px;
             border: none;
-            outline: none;
+            border-radius: 5px;
             margin-bottom: 20px;
-        }
-        #sendBtn {
-            background: linear-gradient(135deg, #6e45e2, #88d3ce);
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-size: 18px;
-            border: none;
-            cursor: pointer;
+            font-size: 1rem;
+            background-color: #2e2e3e;
             color: #ffffff;
-            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #ffffff;
+            background: linear-gradient(to right, #8a2387, #e94057, #f27121);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         #loader {
             display: none;
-            margin-bottom: 20px;
+            font-size: 1rem;
+            margin-top: 20px;
         }
-        #loader::before {
-            content: '';
+        #statusMsg {
+            display: none;
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+        .spinner {
             border: 4px solid #f3f3f3;
-            border-radius: 50%;
             border-top: 4px solid #3498db;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
-            display: block;
-            margin: 0 auto;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        #statusMsg {
-            display: none;
-            font-size: 18px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎨 Generatore Immagini NORA</h1>
-        <input type="text" id="queryInput" placeholder="Scrivi una parola o descrizione...">
+        <h2>Scrivi una parola, NORA trova l'immagine e te la manda su Telegram</h2>
+        <input type="text" id="queryInput" placeholder="Es: tramonto, leone, Ferrari...">
         <button id="sendBtn">Genera e Invia su Telegram 🚀</button>
         <div id="loader">
-            <div>⏳ Sto cercando l'immagine perfetta...</div>
+            <span class="spinner"></span>⏳ NORA sta cercando l'immagine perfetta...
         </div>
         <div id="statusMsg"></div>
     </div>
     <script>
-        const sendBtn = document.getElementById('sendBtn');
-        const queryInput = document.getElementById('queryInput');
-        const loader = document.getElementById('loader');
-        const statusMsg = document.getElementById('statusMsg');
-
-        sendBtn.addEventListener('click', () => {
-            const query = queryInput.value.trim();
-            if (!query) {
+        document.getElementById('sendBtn').addEventListener('click', function() {
+            var q = document.getElementById('queryInput').value.trim();
+            if (!q) {
                 alert('Scrivi una descrizione!');
                 return;
             }
-            sendBtn.style.display = 'none';
-            loader.style.display = 'block';
-
+            document.getElementById('sendBtn').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('statusMsg').style.display = 'none';
             fetch('https://nnora.ai/api/teams/image-generator-telegram/run', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ params: { query: query, caption: query } })
-            })
-            .then(res => res.json())
-            .then(data => {
-                loader.style.display = 'none';
-                statusMsg.style.display = 'block';
-                statusMsg.style.color = '#4ade80';
-                statusMsg.textContent = '✅ Immagine inviata su Telegram!';
-                sendBtn.style.display = 'block';
-            })
-            .catch(err => {
-                loader.style.display = 'none';
-                sendBtn.style.display = 'block';
-                statusMsg.style.display = 'block';
-                statusMsg.style.color = '#f87171';
-                statusMsg.textContent = '❌ Errore: ' + err.message;
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({params: {query: q, caption: q}})
+            }).then(function(r) {
+                return r.json();
+            }).then(function(d) {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('sendBtn').style.display = 'block';
+                document.getElementById('statusMsg').style.display = 'block';
+                document.getElementById('statusMsg').style.color = '#4ade80';
+                document.getElementById('statusMsg').textContent = '✅ Immagine inviata su Telegram!';
+            }).catch(function(e) {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('sendBtn').style.display = 'block';
+                document.getElementById('statusMsg').style.display = 'block';
+                document.getElementById('statusMsg').style.color = '#f87171';
+                document.getElementById('statusMsg').textContent = '❌ Errore di connessione. Riprova.';
             });
         });
     </script>
