@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nora – Workflow Editor (Multi-Direzionale)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Toolbar ─────────────────────────────────────────── */
+    #toolbar {
+      height: 52px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    #toolbar h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e94560;
+      margin-right: 16px;
+      letter-spacing: 1px;
+    }
+
+    .btn {
+      background: #0f3460;
+      border: 1px solid #e94560;
+      color: #e0e0e0;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #e94560; }
+    .btn.btn-green { border-color: #4caf50; }
+    .btn.btn-green:hover { background: #4caf50; }
+    .btn.btn-yellow { border-color: #ff9800; }
+    .btn.btn-yellow:hover { background: #ff9800; }
+
+    .sep { width: 1px; height: 28px; background: #0f3460; margin: 0 6px; }
+
+    #status-bar {
+      margin-left: auto;
+      font-size: 11px;
+      color: #888;
+    }
+
+    /* ─── Canvas area ─────────────────────────────────────── */
+    #canvas-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #canvas {
+      position: absolute;
+      width: 4000px;
+      height: 4000px;
+      top: 0; left: 0;
+      cursor: grab;
+      transform-origin: 0 0;
+    }
+    #canvas.grabbing { cursor: grabbing; }
+
+    /* Grid background */
+    #canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* SVG for edges */
+    #edges-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .edge-path {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+    .edge-path:hover { stroke-width: 4; }
+    .edge-path.selected { stroke-dasharray: 6 3; }
+
+    /* Edge draft (while drawing) */
+    #edge-draft {
+      fill: none;
+      stroke: #e94560;
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+      pointer-events: none;
+    }
+
+    /* ─── Nodes ───────────────────────────────────────────── */
+    .node {
+      position: absolute;
+      min-width: 160px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: default;
+      user-select: none;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .node.selected {
+      border-color: #e94560 !important;
+      box-shadow: 0 0 0 3px rgba(233,69,96,.3);
+    }
+    .node:hover { box-shadow: 0 4px 24px rgba(0,0,0,.5); }
+
+    .node-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px 8px 0 0;
+      cursor: move;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .node-icon { font-size: 16px; }
+
+    .node-body {
+      background: #1e2a45;
+      border-radius: 0 0 8px 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #a0b0c0;
+      min-height: 32px;
+      cursor: move;
+    }
+
+    /* ─── Handles ─────────────────────────────────────────── */
+    .handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #1a1a2e;
+      cursor: crosshair;
+      z-index: 10;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .handle:hover { transform: scale(1.4); }
+
+    .handle-input {
+      left: -8px;
+      background: #4fc3f7;
+    }
+
+    .handle-output {
+      right: -8px;
+      background: #81c784;
+    }
+    .handle-output.out-false { background: #ef5350; }
+    .handle-output.out-branch { background: #ffb74d; }
+    .handle-output.out-error  { background: #ab47bc; }
+
+    .handle-label {
+      position: absolute;
+      font-size: 9px;
+      white-space: nowrap;
+      color: #90a4ae;
+      pointer-events: none;
+    }
+    .handle-input  .handle-label { left: 14px; top: -1px; }
+    .handle-output .handle-label { right: 14px; top: -1px; text-align: right; }
+
+    /* ─── Node type colours ───────────────────────────────── */
+    .nt-start  .node-header { background: #1b5e20; color: #a5d6a7; }
+    .nt-start  { border-color: #388e3c; }
+
+    .nt-end    .node-header { background: #4a148c; color: #ce93d8; }
+    .nt-end    { border-color: #7b1fa2; }
+
+    .nt-action .node-header { background: #0d47a1; color: #90caf9; }
+    .nt-action { border-color: #1565c0; }
+
+    .nt-if     .node-header { background: #e65100; color: #ffcc80; }
+    .nt-if     { border-color: #f57c00; }
+
+    .nt-switch .node-header { background: #880e4f; color: #f48fb1; }
+    .nt-switch { border-color: #c2185b; }
+
+    .nt-http   .node-header { background: #006064; color: #80deea; }
+    .nt-http   { border-color: #00838f; }
+
+    .nt-transform .node-header { background: #37474f; color: #b0bec5; }
+    .nt-transform { border-color: #546e7a; }
+
+    /* ─── Panel ───────────────────────────────────────────── */
+    #panel {
+      position: fixed;
+      top: 64px; right: 16px;
+      width: 220px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 10px;
+      padding: 12px;
+      z-index: 200;
+      display: none;
+    }
+    #panel h2 { font-size: 13px; margin-bottom: 10px; color: #e94560; }
+    #panel label { display: block; font-size: 11px; color: #90a4ae; margin-bottom: 3px; margin-top: 8px; }
+    #panel input, #panel select, #panel textarea {
+      width: 100%;
+      background: #0f3460;
+      border: 1px solid #1a4080;
+      color: #e0e0e0;
+      border-radius: 5px;
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+    #panel textarea { height: 60px; resize: vertical; }
+    #panel-delete {
+      margin-top: 12px;
+      width: 100%;
+      background: #b71c1c;
+      border-color: #ef5350;
+    }
+    #panel-delete:hover { background: #ef5350; }
+
+    /* ─── Legend ──────────────────────────────────────────── */
+    #legend {
+      position: fixed;
+      bottom: 12px; left: 12px;
+      font-size: 10px;
+      color: #546e7a;
+      line-height: 1.6;
+      pointer-events: none;
+    }
+
+    /* ─── Minimap ─────────────────────────────────────────── */
+    #minimap {
+      position: fixed;
+      bottom: 12px; right: 12px;
+      width: 160px;
+      height: 100px;
+      background: rgba(22,33,62,.85);
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #minimap canvas { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Toolbar ──────────────────────────────────────────── -->
+<div id="toolbar">
+  <h1>⚡ NORA</h1>
+  <span style="font-size:11px;color:#546e7a;margin-right:8px;">Aggiungi nodo:</span>
+  <button class="btn" onclick="addNode('start')">▶ Start</button>
+  <button class="btn" onclick="addNode('action')">⚙ Action</button>
+  <button class="btn" onclick="addNode('http')">🌐 HTTP</button>
+  <button class="btn" onclick="addNode('if')">❓ IF</button>
+  <button class="btn" onclick="addNode('switch')">🔀 Switch</button>
+  <button class="btn" onclick="addNode('transform')">🔄 Transform</button>
+  <button class="btn" onclick="addNode('end')">■ End</button>
+  <div class="sep"></div>
+  <button class="btn btn-yellow" onclick="clearCanvas()">🗑 Pulisci</button>
+  <button class="btn btn-green" onclick="exportFlow()">💾 Esporta JSON</button>
+  <div id="status-bar">Seleziona o trascina un nodo</div>
+</div>
+
+<!-- ─── Canvas ───────────────────────────────────────────── -->
+<div id="canvas-wrapper">
+  <div id="canvas">
+    <svg id="edges-svg">
+      <defs>
+        <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#81c784"/>
+        </marker>
+        <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ef5350"/>
+        </marker>
+        <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ffb74d"/>
+        </marker>
+        <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ab47bc"/>
+        </marker>
+        <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#81c784"/>
+        </marker>
+      </defs>
+      <path id="edge-draft" d=""/>
+    </svg>
+  </div>
+</div>
+
+<!-- ─── Properties Panel ──────────────────────────────────── -->
+<div id="panel">
+  <h2 id="panel-title">Proprietà</h2>
+  <label>Nome</label>
+  <input id="panel-name" type="text" oninput="updateSelectedNode()">
+  <label>Descrizione</label>
+  <textarea id="panel-desc" oninput="updateSelectedNode()"></textarea>
+  <div id="panel-extra"></div>
+  <button class="btn btn-green" id="panel-delete" onclick="deleteSelected()">Elimina nodo</button>
+</div>
+
+<!-- ─── Legend ───────────────────────────────────────────── -->
+<div id="legend">
+  <b style="color:#90a4ae">Multi-Directional Nodes – Nora</b><br>
+  🖱 Trascina canvas: pan &nbsp;|&nbsp; Scroll: zoom<br>
+  • Trascina handle verde ➜ output &nbsp;|&nbsp; handle blu ➜ input<br>
+  • Click nodo: seleziona &nbsp;|&nbsp; Click arco: elimina<br>
+  • IF → True / False &nbsp;|&nbsp; Switch → branch multipli
+</div>
+
+<!-- ─── Minimap ───────────────────────────────────────────── -->
+<div id="minimap"><canvas id="mm-canvas"></canvas></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let nodes   = [];  // { id, type, x, y, label, desc, outputs:[{id,label,cls}], inputs:[{id,label}] }
+let edges   = [];  // { id, fromNode, fromHandle, toNode, toHandle }
+let selected = null; // node id
+let nodeCounter = 0;
+let edgeCounter = 0;
+
+/* Canvas pan/zoom */
+let panX = 0, panY = 0, zoom = 1;
+let isPanning = false, panStart = { x: 0, y: 0 };
+
+/* Edge drawing */
+let drawingEdge = null; // { fromNode, fromHandle, x1,y1 }
+let mouseCanvas = { x: 0, y: 0 };
+
+/* Node dragging */
+let draggingNode = null, dragOffset = { x: 0, y: 0 };
+
+const canvas        = document.getElementById('canvas');
+const svg           = document.getElementById('edges-svg');
+const edgeDraft     = document.getElementById('edge-draft');
+const statusBar     = document.getElementById('status-bar');
+const panel         = document.getElementById('panel');
+const wrapper       = document.getElementById('canvas-wrapper');
+
+/* ══════════════════════════════════════════════════════════
+   NODE DEFINITIONS
+═══════════════════════════════════════════════════════════ */
+const NODE_DEFS = {
+  start: {
+    icon: '▶', label: 'Start', cls: 'nt-start',
+    inputs: [],
+    outputs: [{ id:'out', label:'Output', cls:'handle-output' }]
+  },
+  end: {
+    icon: '■', label: 'End', cls: 'nt-end',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: []
+  },
+  action: {
+    icon: '⚙', label: 'Action', cls: 'nt-action',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: [{ id:'out', label:'Output', cls:'handle-output' }]
+  },
+  http: {
+    icon: '🌐', label: 'HTTP Request', cls: 'nt-http',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: [
+      { id:'success', label:'Success', cls:'handle-output' },
+      { id:'error',   label:'Error',   cls:'handle-output out-error' }
+    ]
+  },
+  if: {
+    icon: '❓', label: 'IF Condizione', cls: 'nt-if',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: [
+      { id:'true',  label:'True',  cls:'handle-output' },
+      { id:'false', label:'False', cls:'handle-output out-false' }
+    ]
+  },
+  switch: {
+    icon: '🔀', label: 'Switch', cls: 'nt-switch',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: [
+      { id:'branch0', label:'Branch 1', cls:'handle-output' },
+      { id:'branch1', label:'Branch 2', cls:'handle-output out-branch' },
+      { id:'branch2', label:'Branch 3', cls:'handle-output out-branch' },
+      { id:'default', label:'Default',  cls:'handle-output out-false' }
+    ]
+  },
+  transform: {
+    icon: '🔄', label: 'Transform', cls: 'nt-transform',
+    inputs:  [{ id:'in', label:'Input' }],
+    outputs: [{ id:'out', label:'Output', cls:'handle-output' }]
+  }
+};
+
+/* ══════════════════════════════════════════════════════════
+   ADD NODE
+═══════════════════════════════════════════════════════════ */
+function addNode(type, x, y) {
+  const def = NODE_DEFS[type];
+  if (!def) return;
+
+  const cx = (wrapper.clientWidth  / 2 - panX) / zoom;
+  const cy = (wrapper.clientHeight / 2 - panY) / zoom;
+
+  const node = {
+    id: 'node-' + (++nodeCounter),
+    type,
+    x: x !== undefined ? x : cx - 80 + (Math.random() * 40 - 20),
+    y: y !== undefined ? y : cy - 50 + (Math.random() * 40 - 20),
+    label: def.label,
+    desc: '',
+    inputs:  def.inputs.map(i => ({ ...i })),
+    outputs: def.outputs.map(o => ({ ...o }))
+  };
+
+  nodes.push(node);
+  renderNode(node);
+  renderEdges();
+  selectNode(node.id);
+  updateStatus(`Nodo "${node.label}" aggiunto`);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER NODE (DOM)
+═══════════════════════════════════════════════════════════ */
+function renderNode(node) {
+  let el = document.getElementById(node.id);
+  if (el) el.remove();
+
+  const def = NODE_DEFS[node.type];
+  el = document.createElement('div');
+  el.className = `node ${def.cls}`;
+  el.id = node.id;
+  el.style.left = node.x + 'px';
+  el.style.top  = node.y + 'px';
+
+  /* Header */
+  const header = document.createElement('div');
+  header.className = 'node-header';
+  header.innerHTML = `<span class="node-icon">${def.icon}</span><span>${node.label}</span>`;
+
+  /* Body */
+  const body = document.createElement('div');
+  body.className = 'node-body';
+  body.textContent = node.desc || (node.type === 'if' ? 'condizione...' : node.type === 'http' ? 'GET https://...' : '');
+
+  el.appendChild(header);
+  el.appendChild(body);
+
+  /* Input handles */
+  const inputCount = node.inputs.length;
+  node.inputs.forEach((inp, i) => {
+    const h = document.createElement('div');
+    h.className = 'handle handle-input';
+    const topPct = inputCount === 1 ? 50 : 30 + i * (40 / (inputCount - 1 || 1));
+    h.style.top = topPct + '%';
+    h.style.transform = 'translateY(-50%)';
+    h.dataset.nodeId  = node.id;
+    h.dataset.handle  = inp.id;
+    h.dataset.role    = 'input';
+    const lbl = document.createElement('span');
+    lbl.className = 'handle-label';
+    lbl.textContent = inp.label;
+    h.appendChild(lbl);
+    h.addEventListener('mousedown', onHandleMouseDown);
+    el.appendChild(h);
+  });
+
+  /* Output handles */
+  const outputCount = node.outputs.length;
+  node.outputs.forEach((out, i) => {
+    const h = document.createElement('div');
+    h.className = `handle ${out.cls}`;
+    const topPct = outputCount === 1 ? 50
+      : outputCount === 2 ? (i === 0 ? 33 : 67)
+      : 20 + i * (60 / (outputCount - 1));
+    h.style.top = topPct + '%';
+    h.style.transform = 'translateY(-50%)';
+    h.dataset.nodeId  = node.id;
+    h.dataset.handle  = out.id;
+    h.dataset.role    = 'output';
+    const lbl = document.createElement('span');
+    lbl.className = 'handle-label';
+    lbl.textContent = out.label;
+    h.appendChild(lbl);
+    h.addEventListener('mousedown', onHandleMouseDown);
+    el.appendChild(h);
+  });
+
+  /* Drag node */
+  header.addEventListener('mousedown', onNodeDragStart);
+  body.addEventListener('mousedown',   onNodeDragStart);
+  el.addEventListener('click', (e) => {
+    if (e.target.classList.contains('handle')) return;
+    selectNode(node.id);
+  });
+
+  canvas.appendChild(el);
+}
+
+function rerenderAll() {
+  canvas.querySelectorAll('.node').forEach(n => n.remove());
+  nodes.forEach(renderNode);
+  renderEdges();
+}
+
+/* ══════════════════════════════════════════════════════════
+   HANDLE POSITION HELPER
+═══════════════════════════════════════════════════════════ */
+function getHandlePos(nodeId, handleId, role) {
+  const el = document.querySelector(
+    `.handle[data-node-id="${nodeId}"][data-handle="${handleId}"][data-role="${role}"]`
+  );
+  if (!el) return null;
+  const nr = document.getElementById(nodeId).getBoundingClientRect();
+  const cr = canvas.getBoundingClientRect();
+  const hr = el.getBoundingClientRect();
+  const hcx = hr.left + hr.width  / 2 - cr.left;
+  const hcy = hr.top  + hr.height / 2 - cr.top;
+  return { x: hcx / zoom - panX / zoom, y: hcy / zoom - panY / zoom };
+  // Simpler: use node position + handle offset
+}
+
+function getHandlePosFromData(nodeId, handleId, role) {
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return null;
+  const el = document.getElementById(nodeId);
+  if (!el) return null;
+  const nodeW = el.offsetWidth;
+  const nodeH = el.offsetHeight;
+
+  const list = role === 'output' ? node.outputs : node.inputs;
+  const idx  = list.findIndex(h => h.id === handleId);
+  const count = list.length;
+  const topPct = count === 1 ? 50
+    : count === 2 ? (idx === 0 ? 33 : 67)
+    : 20 + idx * (60 / (count - 1));
+
+  const y = node.y + nodeH * (topPct / 100);
+  const x = role === 'output' ? node.x + nodeW : node.x;
+  return { x, y };
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER EDGES (SVG)
+═══════════════════════════════════════════════════════════ */
+function edgeColor(fromNode, fromHandle) {
+  if (fromHandle === 'false')   return { stroke:'#ef5350', marker:'url(#arrow-red)' };
+  if (fromHandle === 'error')   return { stroke:'#ab47bc', marker:'url(#arrow-purple)' };
+  if (fromHandle.startsWith('branch')) return { stroke:'#ffb74d', marker:'url(#arrow-orange)' };
+  return { stroke:'#81c784', marker:'url(#arrow-blue)' };
+}
+
+function bezier(x1,y1,x2,y2) {
+  const dx = Math.abs(x2-x1) * 0.5 + 40;
+  return `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+}
+
+function renderEdges() {
+  svg.querySelectorAll('.edge-path').forEach(e => e.remove());
+  edges.forEach(edge => {
+    const p1 = getHandlePosFromData(edge.fromNode, edge.fromHandle, 'output');
+    const p2 = getHandlePosFromData(edge.toNode,   edge.toHandle,   'input');
+    if (!p1 || !p2) return;
+    const col = edgeColor(edge.fromNode, edge.fromHandle);
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('class', 'edge-path');
+    path.setAttribute('d', bezier(p1.x,p1.y, p2.x,p2.y));
+    path.setAttribute('stroke', col.stroke);
+    path.setAttribute('marker-end', col.marker);
+    path.dataset.edgeId = edge.id;
+    path.addEventListener('click', () => deleteEdge(edge.id));
+    svg.appendChild(path);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   EDGE DRAWING
+═══════════════════════════════════════════════════════════ */
+function onHandleMouseDown(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  const h = e.currentTarget;
+  const role    = h.dataset.role;
+  const nodeId  = h.dataset.nodeId;
+  const handleId= h.dataset.handle;
+
+  if (role === 'output') {
+    const pos = getHandlePosFromData(nodeId, handleId, 'output');
+    if (!pos) return;
+    drawingEdge = { fromNode: nodeId, fromHandle: handleId, x1: pos.x, y1: pos.y };
+    updateDraft(pos.x, pos.y, pos.x, pos.y);
+  } else {
+    // Start from input: find connected edge and re-draw from its output
+    const existing = edges.find(ed => ed.toNode === nodeId && ed.toHandle === handleId);
+    if (existing) {
+      const pos = getHandlePosFromData(existing.fromNode, existing.fromHandle, 'output');
+      if (!pos) return;
+      deleteEdge(existing.id);
+      drawingEdge = { fromNode: existing.fromNode, fromHandle: existing.fromHandle, x1: pos.x, y1: pos.y };
+    }
+  }
+}
+
+function updateDraft(x1,y1,x2,y2) {
+  edgeDraft.setAttribute('d', bezier(x1,y1,x2,y2));
+}
+
+/* ══════════════════════════════════════════════════════════
+   SELECTION & PANEL
+═══════════════════════════════════════════════════════════ */
+function selectNode(id) {
+  if (selected) {
+    const prev = document.getElementById(selected);
+    if (prev) prev.classList.remove('selected');
+  }
+  selected = id;
+  const el = id ? document.getElementById(id) : null;
+  if (el) {
+    el.classList.add('selected');
+    panel.style.display = 'block';
+    const node = nodes.find(n => n.id === id);
+    document.getElementById('panel-title').textContent = NODE_DEFS[node.type].icon + ' ' + node.label;
+    document.getElementById('panel-name').value = node.label;
+    document.getElementById('panel-desc').value = node.desc || '';
+    renderPanelExtra(node);
+    updateStatus(`Selezionato: ${node.label}`);
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function renderPanelExtra(node) {
+  const div = document.getElementById('panel-extra');
+  div.innerHTML = '';
+  if (node.type === 'if') {
+    div.innerHTML = `<label>Espressione condizione</label>
+      <input type="text" placeholder='es. data.value > 10' value="${node.condition||''}"
+        oninput="updateNodeProp('condition', this.value)">`;
+  } else if (node.type === 'http') {
+    div.innerHTML = `<label>Metodo</label>
+      <select onchange="updateNodeProp('method', this.value)">
+        <option ${node.method==='GET'?'selected':''}>GET</option>
+        <option ${node.method==='POST'?'selected':''}>POST</option>
+        <option ${node.method==='PUT'?'selected':''}>PUT</option>
+        <option ${node.method==='DELETE'?'selected':''}>DELETE</option>
+      </select>
+      <label>URL</label>
+      <input type="text" placeholder="https://api.example.com/..." value="${node.url||''}"
+        oninput="updateNodeProp('url', this.value)">`;
+  } else if (node.type === 'switch') {
+    div.innerHTML = `<label>Campo da valutare</label>
+      <input type="text" placeholder="es. data.status" value="${node.switchField||''}"
+        oninput="updateNodeProp('switchField', this.value)">`;
+  }
+}
+
+function updateNodeProp(prop, value) {
+  const node = nodes.find(n => n.id === selected);
+  if (node) { node[prop] = value; updateNodeBody(node); }
+}
+
+function updateSelectedNode() {
+  const node = nodes.find(n => n.id === selected);
+  if (!node) return;
+  node.label = document.getElementById('panel-name').value;
+  node.desc  = document.getElementById('panel-desc').value;
+  const el = document.getElementById(node.id);
+  if (el) {
+    el.querySelector('.node-header span:last-child').textContent = node.label;
+    updateNodeBody(node);
+  }
+  document.getElementById('panel-title').textContent = NODE_DEFS[node.type].icon + ' ' + node.label;
+}
+
+function updateNodeBody(node) {
+  const el = document.getElementById(node.id);
+  if (!el) return;
+  const body = el.querySelector('.node-body');
+  body.textContent = node.desc || node.url || node.condition || node.switchField || '';
+}
+
+function deleteSelected() {
+  if (!selected) return;
+  deleteNode(selected);
+}
+
+function deleteNode(id) {
+  nodes = nodes.filter(n => n.id !== id);
+  edges = edges.filter(e => e.fromNode !== id && e.toNode !== id);
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  selected = null;
+  panel.style.display = 'none';
+  renderEdges();
+  updateStatus('Nodo eliminato');
+}
+
+function deleteEdge(id) {
+  edges = edges.filter(e => e.id !== id);
+  renderEdges();
+  updateStatus('Connessione eliminata');
+}
+
+/* ══════════════════════════════════════════════════════════
+   NODE DRAG
+═══════════════════════════════════════════════════════════ */
+function onNodeDragStart(e) {
+  if (e.target.classList.contains('handle')) return;
+  e.stopPropagation();
+  const nodeEl = e.currentTarget.closest('.node');
+  const node   = nodes.find(n => n.id === nodeEl.id);
+  if (!node) return;
+  draggingNode = node;
+  dragOffset.x = (e.clientX - panX) / zoom - node.x;
+  dragOffset.y = (e.clientY - panY) / zoom - node.y;
+  selectNode(node.id);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CANVAS PAN
+═══════════════════════════════════════════════════════════ */
+wrapper.addEventListener('mousedown', (e) => {
+  if (e.target !== canvas && !e.target.matches('#canvas::before') && e.target.id !== 'canvas') return;
+  isPanning = true;
+  panStart.x = e.clientX - panX;
+  panStart.y = e.clientY - panY;
+  canvas.classList.add('grabbing');
+  selectNode(null);
+});
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL MOUSE MOVE
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseCanvas.x = (e.clientX - rect.left) / zoom;
+  mouseCanvas.y = (e.clientY - rect.top)  / zoom;
+
+  if (draggingNode) {
+    draggingNode.x = (e.clientX - panX) / zoom - dragOffset.x;
+    draggingNode.y = (e.clientY - panY) / zoom - dragOffset.y;
+    const el = document.getElementById(draggingNode.id);
+    if (el) { el.style.left = draggingNode.x + 'px'; el.style.top = draggingNode.y + 'px'; }
+    renderEdges();
+  }
+
+  if (isPanning) {
+    panX = e.clientX - panStart.x;
+    panY = e.clientY - panStart.y;
+    applyTransform();
+  }
+
+  if (drawingEdge) {
+    updateDraft(drawingEdge.x1, drawingEdge.y1, mouseCanvas.x, mouseCanvas.y);
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (draggingNode) { draggingNode = null; renderEdges(); }
+
+  if (isPanning) {
+    isPanning = false;
+    canvas.classList.remove('grabbing');
+  }
+
+  if (drawingEdge) {
+    /* Find target handle under cursor */
+    const els = document.elementsFromPoint(e.clientX, e.clientY);
+    const targetHandle = els.find(el =>
+      el.classList.contains('handle') &&
+      el.dataset.role === 'input' &&
+      el.dataset.nodeId !== drawingEdge.fromNode
+    );
+    if (targetHandle) {
+      const toNode   = targetHandle.dataset.nodeId;
+      const toHandle = targetHandle.dataset.handle;
+      // Remove existing edge to this input
+      edges = edges.filter(ed => !(ed.toNode === toNode && ed.toHandle === toHandle));
+      edges.push({
+        id: 'edge-' + (++edgeCounter),
+        fromNode:   drawingEdge.fromNode,
+        fromHandle: drawingEdge.fromHandle,
+        toNode,
+        toHandle
+      });
+      renderEdges();
+      updateStatus('Connessione creata');
+    }
+    edgeDraft.setAttribute('d', '');
+    drawingEdge = null;
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   ZOOM
+═══════════════════════════════════════════════════════════ */
+wrapper.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta  = e.deltaY > 0 ? 0.9 : 1.1;
+  const newZoom = Math.min(Math.max(zoom * delta, 0.2), 3);
+  const rect   = wrapper.getBoundingClientRect();
+  const mx     = e.clientX - rect.left;
+  const my     = e.clientY - rect.top;
+  panX = mx - (mx - panX) * (newZoom / zoom);
+  panY = my - (my - panY) * (newZoom / zoom);
+  zoom = newZoom;
+  applyTransform();
+}, { passive: false });
+
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+  renderEdges();
+  drawMinimap();
+}
+
+/* ══════════════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════════════ */
+function clearCanvas() {
+  if (!confirm('Pulire il canvas? Tutte le connessioni e i nodi saranno eliminati.')) return;
+  nodes = []; edges = [];
+  canvas.querySelectorAll('.node').forEach(n => n.remove());
+  renderEdges();
+  selected = null;
+  panel.style.display = 'none';
+  updateStatus('Canvas pulito');
+}
+
+function exportFlow() {
+  const data = JSON.stringify({ nodes, edges }, null, 2);
+  const blob = new Blob([data], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'nora-flow.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function updateStatus(msg) {
+  statusBar.textContent = msg;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MINIMAP
+═══════════════════════════════════════════════════════════ */
+const mmCanvas = document.getElementById('mm-canvas');
+const mmCtx    = mmCanvas.getContext('2d');
+
+function drawMinimap() {
+  mmCanvas.width  = 160;
+  mmCanvas.height = 100;
+  mmCtx.clearRect(0,0,160,100);
+  mmCtx.fillStyle = '#1a2a3e';
+  mmCtx.fillRect(0,0,160,100);
+
+  const SCALE = 160 / 4000;
+
+  nodes.forEach(node => {
+    const el = document.getElementById(node.id);
+    if (!el) return;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    mmCtx.fillStyle = '#0f3460';
+    mmCtx.beginPath();
+    mmCtx.roundRect(node.x * SCALE, node.y * SCALE, w * SCALE, h * SCALE, 2);
+    mmCtx.fill();
+  });
+
+  // Viewport box
+  const vx = (-panX / zoom) * SCALE;
+  const vy = (-panY / zoom) * SCALE;
+  const vw = (wrapper.clientWidth  / zoom) * SCALE;
+  const vh = (wrapper.clientHeight / zoom) * SCALE;
+  mmCtx.strokeStyle = '#e94560';
+  mmCtx.lineWidth   = 1;
+  mmCtx.strokeRect(vx, vy, vw, vh);
+}
+
+/* ══════════════════════════════════════════════════════════
+   DEMO FLOW
+═══════════════════════════════════════════════════════════ */
+function loadDemo() {
+  const n1 = { id:'node-1', type:'start',     x:100,  y:220, label:'Trigger',       desc:'Avvio flusso', inputs:[], outputs:[{id:'out',label:'Output',cls:'handle-output'}] };
+  const n2 = { id:'node-2', type:'http',      x:340,  y:180, label:'Chiama API',    desc:'GET /users', inputs:[{id:'in',label:'Input'}], outputs:[{id:'success',label:'Success',cls:'handle-output'},{id:'error',label:'Error',cls:'handle-output out-error'}], url:'GET https://api.example.com/users', method:'GET' };
+  const n3 = { id:'node-3', type:'if',        x:620,  y:100, label:'Utente attivo?',desc:'status === active', inputs:[{id:'in',label:'Input'}], outputs:[{id:'true',label:'True',cls:'handle-output'},{id:'false',label:'False',cls:'handle-output out-false'}], condition:'user.status === "active"' };
+  const n4 = { id:'node-4', type:'action',    x:900,  y:40,  label:'Invia Email',   desc:'Notifica benvenuto', inputs:[{id:'in',label:'Input'}], outputs:[{id:'out',label:'Output',cls:'handle-output'}] };
+  const n5 = { id:'node-5', type:'action',    x:900,  y:200, label:'Log Inattivo',  desc:'Scrivi su DB', inputs:[{id:'in',label:'Input'}], outputs:[{id:'out',label:'Output',cls:'handle-output'}] };
+  const n6 = { id:'node-6', type:'switch',    x:620,  y:320, label:'Tipo Errore',   desc:'code HTTP', inputs:[{id:'in',label:'Input'}], outputs:[{id:'branch0',label:'Branch 1',cls:'handle-output'},{id:'branch1',label:'Branch 2',cls:'handle-output out-branch'},{id:'branch2',label:'Branch 3',cls:'handle-output out-branch'},{id:'default',label:'Default',cls:'handle-output out-false'}], switchField:'error.code' };
+  const n7 = { id:'node-7', type:'action',    x:880,  y:300, label:'Retry',         desc:'Riprova 3x', inputs:[{id:'in',label:'Input'}], outputs:[{id:'out',label:'Output',cls:'handle-output'}] };
+  const n8 = { id:'node-8', type:'action',    x:880,  y:400, label:'Fallback',      desc:'Usa cache', inputs:[{id:'in',label:'Input'}], outputs:[{id:'out',label:'Output',cls:'handle-output'}] };
+  const n9 = { id:'node-9', type:'end',       x:1140, y:140, label:'Fine',          desc:'', inputs:[{id:'in',label:'Input'}], outputs:[] };
+  const n10= { id:'node-10',type:'end',       x:1140, y:350, label:'Fine Errore',   desc:'', inputs:[{id:'in',label:'Input'}], outputs:[] };
+
+  nodes = [n1,n2,n3,n4,n5,n6,n7,n8,n9,n10];
+  nodeCounter = 10;
+
+  edges = [
+    { id:'e1',  fromNode:'node-1',  fromHandle:'out',     toNode:'node-2',  toHandle:'in' },
+    { id:'e2',  fromNode:'node-2',  fromHandle:'success', toNode:'node-3',  toHandle:'in' },
+    { id:'e3',  fromNode:'node-2',  fromHandle:'error',   toNode:'node-6',  toHandle:'in' },
+    { id:'e4',  fromNode:'node-3',  fromHandle:'true',    toNode:'node-4',  toHandle:'in' },
+    { id:'e5',  fromNode:'node-3',  fromHandle:'false',   toNode:'node-5',  toHandle:'in' },
+    { id:'e6',  fromNode:'node-4',  fromHandle:'out',     toNode:'node-9',  toHandle:'in' },
+    { id:'e7',  fromNode:'node-5',  fromHandle:'out',     toNode:'node-9',  toHandle:'in' },
+    { id:'e8',  fromNode:'node-6',  fromHandle:'branch0', toNode:'node-7',  toHandle:'in' },
+    { id:'e9',  fromNode:'node-6',  fromHandle:'branch1', toNode:'node-8',  toHandle:'in' },
+    { id:'e10', fromNode:'node-6',  fromHandle:'default', toNode:'node-10', toHandle:'in' },
+    { id:'e11', fromNode:'node-7',  fromHandle:'out',     toNode:'node-9',  toHandle:'in' },
+    { id:'e12', fromNode:'node-8',  fromHandle:'out',     toNode:'node-10', toHandle:'in' },
+  ];
+  edgeCounter = 12;
+
+  rerenderAll();
+  updateStatus('Demo caricata – esplora il flusso multi-direzionale');
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+// Center the canvas
+panX = -(4000 - wrapper.clientWidth)  / 2 * 0.15;
+panY = -(4000 - wrapper.clientHeight) / 2 * 0.3;
+applyTransform();
+
+// Load demo
+loadDemo();
+
+// Redraw minimap periodically
+setInterval(drawMinimap, 500);
+</script>
+</body>
+</html>
