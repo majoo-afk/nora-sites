@@ -1,1 +1,135 @@
-<from_previous_step>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Generatore Immagini NORA</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #0f0f1a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin: 0.5em 0;
+        }
+        h2 {
+            font-weight: 400;
+            color: #a855f7;
+            margin-bottom: 1.5em;
+        }
+        .card {
+            background-color: #1a2744;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 80%;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.8em;
+            margin-bottom: 1em;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        button {
+            background: linear-gradient(90deg, #7c3aed, #a855f7);
+            color: #ffffff;
+            padding: 0.8em 1.5em;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #loader {
+            display: none;
+            margin-top: 1em;
+        }
+        #loader div {
+            width: 40px;
+            height: 40px;
+            border: 6px solid #7c3aed;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎨 Generatore Immagini NORA</h1>
+        <h2>Scrivi una parola e l'immagine appare qui</h2>
+    </header>
+    <div class="card">
+        <input type="text" id="query-input" placeholder="Es: ferrari, tramonto, leone, montagna...">
+        <button id="search-btn">Cerca Immagine 🔍</button>
+        <div id="loader">
+            <div></div>
+            <p>Sto cercando...</p>
+        </div>
+        <p id="error-msg"></p>
+    </div>
+    <div id="result-container">
+        <img id="result-image" alt="Risultato immagine">
+        <p id="result-caption"></p>
+    </div>
+    <script>
+        document.getElementById('search-btn').addEventListener('click', async function() {
+            const query = document.getElementById('query-input').value.trim();
+            if (!query) { alert('Scrivi una parola!'); return; }
+            document.getElementById('loader').style.display='block';
+            document.getElementById('result-container').style.display='none';
+            document.getElementById('error-msg').style.display='none';
+            document.getElementById('search-btn').disabled=true;
+            try {
+                const res = await fetch('https://nnora.ai/api/agents/image_scout/run', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({intent:'images.search', params:{query:query}, user_id:'admin'})
+                });
+                const data = await res.json();
+                const img_url = data.hero_image || (data.output && data.output.hero_image) || '';
+                if (img_url) {
+                    document.getElementById('result-image').src = img_url;
+                    document.getElementById('result-caption').textContent = '🖼️ ' + query;
+                    document.getElementById('result-container').style.display='block';
+                } else {
+                    document.getElementById('error-msg').textContent='❌ Nessuna immagine trovata per: '+query;
+                    document.getElementById('error-msg').style.display='block';
+                }
+            } catch(e) {
+                document.getElementById('error-msg').textContent='❌ Errore di connessione: '+e.message;
+                document.getElementById('error-msg').style.display='block';
+            } finally {
+                document.getElementById('loader').style.display='none';
+                document.getElementById('search-btn').disabled=false;
+            }
+        });
+        document.getElementById('query-input').addEventListener('keypress', function(e) {
+            if(e.key==='Enter') document.getElementById('search-btn').click();
+        });
+    </script>
+</body>
+</html>
