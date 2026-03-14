@@ -6,60 +6,58 @@
     <title>🎨 Generatore Immagini NORA</title>
     <style>
         body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0f0f1a;
             color: #ffffff;
+            font-family: 'Arial', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
+            margin: 0;
+            padding: 0 20px;
             box-sizing: border-box;
-        }
-        header {
-            text-align: center;
-            margin-bottom: 40px;
         }
         h1 {
             font-size: 2.5em;
-            margin: 0;
+            margin: 0.5em 0;
         }
         h2 {
             font-size: 1.2em;
+            font-weight: normal;
             color: #a855f7;
+            margin-bottom: 2em;
         }
-        .card {
-            background-color: #1a1a2e;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             width: 100%;
             max-width: 500px;
-            text-align: center;
         }
-        input[type="text"] {
+        #query-input {
             width: 100%;
-            padding: 10px;
+            padding: 0.8em;
             font-size: 1em;
             border-radius: 8px;
-            border: none;
-            margin-bottom: 20px;
-            box-sizing: border-box;
-        }
-        button {
-            background: linear-gradient(90deg, #7c3aed, #a855f7);
+            border: 1px solid #a855f7;
+            margin-bottom: 1em;
+            background-color: #1a1a2e;
             color: #ffffff;
-            padding: 15px 20px;
+        }
+        #search-btn {
             font-size: 1.2em;
+            padding: 0.8em 1.5em;
+            background: linear-gradient(90deg, #7c3aed, #a855f7);
             border: none;
             border-radius: 8px;
+            color: #ffffff;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.5);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: background 0.3s;
         }
-        button:disabled {
-            opacity: 0.5;
+        #search-btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
         }
         #loader {
@@ -67,52 +65,54 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            color: #a855f7;
-            margin-top: 20px;
+            margin: 2em 0;
         }
         #loader div {
-            border: 4px solid rgba(124, 58, 237, 0.3);
-            border-top: 4px solid #7c3aed;
+            border: 4px solid #7c3aed;
+            border-top: 4px solid #ffffff;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin-bottom: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            margin-bottom: 1em;
         }
         #result-container {
             display: none;
             text-align: center;
+            margin-top: 2em;
         }
         #error-msg {
             display: none;
             color: #f87171;
-            margin-top: 20px;
+            margin-top: 2em;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <header>
         <h1>🎨 Generatore Immagini NORA</h1>
-        <h2>Scrivi una parola, l'immagine reale appare qui</h2>
+        <h2>Scrivi una parola, la GIF animata appare qui</h2>
     </header>
-    <div class="card">
-        <input type="text" id="query-input" placeholder="Es: ferrari, cavallo, leone, montagna...">
+    <div class="input-container">
+        <input type="text" id="query-input" placeholder="Es: ferrari, orsetto rosa, leone, tramonto...">
         <button id="search-btn">Cerca Immagine 🔍</button>
-        <div id="loader">
-            <div></div>
-            <span>Sto cercando l'immagine...</span>
-        </div>
-        <div id="result-container">
-            <img id="result-image" style="max-width:100%;border-radius:16px;box-shadow:0 8px 32px rgba(124,58,237,0.5);margin:20px 0">
-            <p id="result-caption" style="font-size:1.3em;font-weight:bold;color:#a855f7;text-transform:capitalize"></p>
-        </div>
-        <p id="error-msg" style="font-size:1.1em"></p>
     </div>
+    <div id="loader">
+        <div></div>
+        <p>Sto cercando...</p>
+    </div>
+    <div id="result-container">
+        <img id="result-image" alt="Risultato GIF">
+        <p id="result-caption"></p>
+    </div>
+    <p id="error-msg"></p>
     <script>
+        const GIPHY_KEY = '9PVCdedRliZhYtOMX0n84rSYFLs8l5k0';
+
         function searchImage() {
             const query = document.getElementById('query-input').value.trim();
             if (!query) { alert('Scrivi una parola!'); return; }
@@ -122,71 +122,29 @@
             document.getElementById('error-msg').style.display='none';
             document.getElementById('search-btn').disabled=true;
 
-            const url = 'https://en.wikipedia.org/w/api.php?action=query&titles=' + encodeURIComponent(query) + '&prop=pageimages&format=json&pithumbsize=800&origin=*';
+            const url = 'https://api.giphy.com/v1/gifs/search?api_key=' + GIPHY_KEY + '&q=' + encodeURIComponent(query) + '&limit=1&rating=g&lang=it';
 
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    const pages = data.query.pages;
-                    const page = Object.values(pages)[0];
-                    if (page && page.thumbnail && page.thumbnail.source) {
-                        const imgUrl = page.thumbnail.source;
+                    document.getElementById('loader').style.display='none';
+                    document.getElementById('search-btn').disabled=false;
+                    if (data.data && data.data.length > 0) {
+                        const gifUrl = data.data[0].images.original.url;
                         const img = document.getElementById('result-image');
-                        img.onload = function() {
-                            document.getElementById('loader').style.display='none';
-                            document.getElementById('result-caption').textContent = '🖼️ ' + query;
-                            document.getElementById('result-container').style.display='block';
-                            document.getElementById('search-btn').disabled=false;
-                        };
-                        img.onerror = function() {
-                            document.getElementById('loader').style.display='none';
-                            document.getElementById('error-msg').textContent='❌ Immagine non caricabile per: ' + query;
-                            document.getElementById('error-msg').style.display='block';
-                            document.getElementById('search-btn').disabled=false;
-                        };
-                        img.src = imgUrl;
+                        img.src = gifUrl;
+                        document.getElementById('result-caption').textContent = '🖼️ ' + query;
+                        document.getElementById('result-container').style.display='block';
                     } else {
-                        const searchUrl = 'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=' + encodeURIComponent(query) + '&format=json&origin=*';
-                        fetch(searchUrl)
-                            .then(r => r.json())
-                            .then(sd => {
-                                if (sd.query.search && sd.query.search.length > 0) {
-                                    const firstTitle = sd.query.search[0].title;
-                                    const url2 = 'https://en.wikipedia.org/w/api.php?action=query&titles=' + encodeURIComponent(firstTitle) + '&prop=pageimages&format=json&pithumbsize=800&origin=*';
-                                    fetch(url2)
-                                        .then(r2 => r2.json())
-                                        .then(d2 => {
-                                            const p2 = Object.values(d2.query.pages)[0];
-                                            if (p2 && p2.thumbnail && p2.thumbnail.source) {
-                                                const img = document.getElementById('result-image');
-                                                img.onload = function() {
-                                                    document.getElementById('loader').style.display='none';
-                                                    document.getElementById('result-caption').textContent = '🖼️ ' + query + ' (' + firstTitle + ')';
-                                                    document.getElementById('result-container').style.display='block';
-                                                    document.getElementById('search-btn').disabled=false;
-                                                };
-                                                img.src = p2.thumbnail.source;
-                                            } else {
-                                                document.getElementById('loader').style.display='none';
-                                                document.getElementById('error-msg').textContent='❌ Nessuna immagine trovata per: ' + query + '. Prova in inglese!';
-                                                document.getElementById('error-msg').style.display='block';
-                                                document.getElementById('search-btn').disabled=false;
-                                            }
-                                        });
-                                } else {
-                                    document.getElementById('loader').style.display='none';
-                                    document.getElementById('error-msg').textContent='❌ Nessun risultato per: ' + query;
-                                    document.getElementById('error-msg').style.display='block';
-                                    document.getElementById('search-btn').disabled=false;
-                                }
-                            });
+                        document.getElementById('error-msg').textContent='❌ Nessuna GIF trovata per: ' + query + '. Prova un altra parola!';
+                        document.getElementById('error-msg').style.display='block';
                     }
                 })
                 .catch(err => {
                     document.getElementById('loader').style.display='none';
+                    document.getElementById('search-btn').disabled=false;
                     document.getElementById('error-msg').textContent='❌ Errore connessione: ' + err.message;
                     document.getElementById('error-msg').style.display='block';
-                    document.getElementById('search-btn').disabled=false;
                 });
         }
 
