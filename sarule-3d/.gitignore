@@ -6,3 +6,4 @@ output/stampa/*.obj
 output/stampa/*.mtl
 output/stampa/*.jpg
 output/stampa/*.html
+__pycache__/
