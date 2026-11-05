@@ -7,3 +7,6 @@ output/stampa/*.mtl
 output/stampa/*.jpg
 output/stampa/*.html
 __pycache__/
+output/centro/*.stl
+output/centro/*.json
+output/centro/*.zip

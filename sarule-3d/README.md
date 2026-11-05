@@ -59,3 +59,11 @@ OBJ + MTL + texture JPG 4096×3072 alla radice dello zip.
 - 380 × 285 × 67 mm, guscio cavo da 3,5 mm aperto sotto (~670 cm³ invece di ~3400)
 - colori cartografici liberi da diritti (quota + ombreggiatura da DTM regionale, acque/strade/edifici OSM)
 - solido chiuso con normali coerenti (verificato con trimesh)
+
+## Centro urbano di Sarule (dettaglio massimo con dati pubblici)
+
+`centro_urbano.py` + `build_viewer_centro.py`: area 1,1 × 0,9 km, plastico 36 × 29,5 cm (1:3.000), rilievo reale.
+- terreno DTM LiDAR 1 m (WCS Regione Sardegna), griglia 0,6 m
+- 971 edifici: sagome DBGT 10k della Regione (WFS) + edifici solo-OSM
+- altezze stimate per uso e dimensione (correggibili in `ALTEZZE_MANUALI`), tetti a padiglione generati
+- STL chiuso 1,6 M triangoli; visualizzatore 3D `output/centro/sarule_centro_3d.html`
