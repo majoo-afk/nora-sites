@@ -51,3 +51,11 @@ python3 build_viewer.py      # -> output/colori/sarule_gonare_3d.html (visualizz
 pubblicare serve l'autorizzazione AGEA, oppure un'immagine con licenza libera
 (es. Sentinel-2 cloudless 2016, CC BY 4.0, 10 m) o foto da drone proprie.
 Per questo `output/colori/` non è versionato.
+
+## File per i service di stampa (Craftcloud, JLC3DP…)
+
+`prepara_stampa.py` → `output/stampa/sarule_gonare_stampa.zip` (16 MB):
+OBJ + MTL + texture JPG 4096×3072 alla radice dello zip.
+- 380 × 285 × 67 mm, guscio cavo da 3,5 mm aperto sotto (~670 cm³ invece di ~3400)
+- colori cartografici liberi da diritti (quota + ombreggiatura da DTM regionale, acque/strade/edifici OSM)
+- solido chiuso con normali coerenti (verificato con trimesh)

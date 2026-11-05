@@ -2,3 +2,7 @@ output/*.stl
 output/*.npy
 output/colori/
 cache/
+output/stampa/*.obj
+output/stampa/*.mtl
+output/stampa/*.jpg
+output/stampa/*.html
