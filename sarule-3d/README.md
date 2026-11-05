@@ -33,3 +33,21 @@ rialzate di 0,4 mm.
 ## Fonti e licenze
 - Altimetria: Copernicus DEM GLO-30 © DLR e.V. 2010-2014 / © Airbus 2014-2018, fornito da ESA (Copernicus).
 - Edifici e strade: © OpenStreetMap contributors, licenza ODbL.
+
+## Versione a colori (anteprima)
+
+`genera_colori.py` crea un plastico 40 × 30 cm (scala 1:16.000) con:
+- DTM LiDAR 1 m della Regione Sardegna (copre il paese, ~31% dell'area) fuso con il DTM 10 m regionale;
+- ortofoto 2022 (WMS Regione Sardegna, `raster:Mosaico_2022_GB`) come texture;
+- edifici OSM in rilievo con altezza stimata.
+
+```bash
+python3 genera_colori.py     # -> output/colori/sarule_gonare_colori.glb (+ texture, dati viewer)
+python3 build_viewer.py      # -> output/colori/sarule_gonare_3d.html (visualizzatore three.js)
+```
+
+**Attenzione:** le ortofoto 2019/2022 sono © MASAF-AGEA, *tutti i diritti riservati*
+(filigrana visibile). Vanno usate solo come anteprima privata: per stampare o
+pubblicare serve l'autorizzazione AGEA, oppure un'immagine con licenza libera
+(es. Sentinel-2 cloudless 2016, CC BY 4.0, 10 m) o foto da drone proprie.
+Per questo `output/colori/` non è versionato.

@@ -1,2 +1,4 @@
 output/*.stl
 output/*.npy
+output/colori/
+cache/

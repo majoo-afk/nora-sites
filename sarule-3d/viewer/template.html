@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Plastico Sarule–Gonare</title>
+<style>
+  :root { --bg:#f3efe7; --fg:#2b2620; --muted:#6d6457; --panel:rgba(255,252,246,.88); --accent:#a8452f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#16140f; --fg:#efe9df; --muted:#a39a8c; --panel:rgba(30,27,22,.85); --accent:#e0805f; } }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow:hidden; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .panel { position:fixed; left:16px; right:16px; top:12px; max-width:420px; background:var(--panel); backdrop-filter:blur(8px);
+           border-radius:14px; padding:12px 14px; box-shadow:0 4px 18px rgba(0,0,0,.12); }
+  h1 { font-size:17px; margin:0 0 2px; letter-spacing:.2px; }
+  .sub { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { font:inherit; font-size:13px; padding:7px 11px; border-radius:999px; border:1px solid color-mix(in srgb,var(--fg) 20%,transparent);
+           background:transparent; color:var(--fg); cursor:pointer; }
+  button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  label { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; margin-top:8px; }
+  input[type=range] { flex:1; accent-color:var(--accent); }
+  .foot { position:fixed; left:16px; right:16px; bottom:10px; font-size:11px; color:var(--muted); text-align:center; text-shadow:0 0 6px var(--bg); }
+  .tag { position:fixed; font-size:12px; font-weight:600; color:#fff; background:rgba(30,25,20,.72); padding:3px 8px; border-radius:6px;
+         pointer-events:none; transform:translate(-50%,-140%); white-space:nowrap; }
+  #load { position:fixed; inset:0; display:grid; place-items:center; font-size:14px; color:var(--muted); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="load">Caricamento del plastico…</div>
+<div class="panel">
+  <h1>Sarule e Monte Gonare</h1>
+  <p class="sub">Anteprima del plastico a colori · 40 × 30 cm · scala 1:16.000</p>
+  <div class="row">
+    <button id="v3d" class="on">Prospettiva</button>
+    <button id="vtop">Dall'alto</button>
+    <button id="vside">Di lato</button>
+    <button id="spin">Ruota</button>
+  </div>
+  <label>Rilievo <input id="ex" type="range" min="1" max="3" step="0.1" value="1.5"><span id="exv">1,5×</span></label>
+</div>
+<div class="tag" id="t1">Sarule</div>
+<div class="tag" id="t2">Monte Gonare · 1083 m</div>
+<div class="foot">DTM LiDAR 1 m e 10 m © Regione Sardegna · Ortofoto © MASAF-AGEA, tutti i diritti riservati (solo anteprima) · Edifici © OpenStreetMap</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const D = JSON.parse(document.getElementById('data').textContent);
+const W = D.w, H = D.h, S = D.step_mm, BASE = __BASE__, EX0 = __EX__;
+const raw = Uint8Array.from(atob(D.z_b64), c => c.charCodeAt(0));
+const zq = new Uint16Array(raw.buffer);
+const z0 = Float32Array.from(zq, v => v / 100);            // mm, già con esagerazione EX0
+const LX = (W - 1) * S, LY = (H - 1) * S;
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+scene.background = new THREE.Color(dark ? 0x16140f : 0xf3efe7);
+
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.49; controls.minDistance = 60; controls.maxDistance = 1400;
+
+// terreno (coordinate: x est, y su, z sud)
+const geo = new THREE.BufferGeometry();
+const pos = new Float32Array(W * H * 3), uv = new Float32Array(W * H * 2);
+for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+  const k = j * W + i;
+  pos[3*k] = i * S - LX / 2; pos[3*k+2] = j * S - LY / 2;
+  uv[2*k] = i / (W - 1); uv[2*k+1] = 1 - j / (H - 1);
+}
+const idx = new Uint32Array((W - 1) * (H - 1) * 6); let p = 0;
+for (let j = 0; j < H - 1; j++) for (let i = 0; i < W - 1; i++) {
+  const a = j*W+i, b = a+1, c = a+W, d = c+1;
+  idx[p++]=a; idx[p++]=c; idx[p++]=b; idx[p++]=b; idx[p++]=c; idx[p++]=d;
+}
+geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+geo.setIndex(new THREE.BufferAttribute(idx, 1));
+
+const img = new Image();
+img.src = 'data:image/jpeg;base64,' + D.tex_b64;
+await img.decode();
+const tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace;
+tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.needsUpdate = true;
+const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0 }));
+terrain.castShadow = terrain.receiveShadow = true; scene.add(terrain);
+
+// pareti marroni
+const ring = [];
+for (let i = 0; i < W; i++) ring.push(i);
+for (let j = 1; j < H; j++) ring.push(j*W + W-1);
+for (let i = W-2; i >= 0; i--) ring.push((H-1)*W + i);
+for (let j = H-2; j > 0; j--) ring.push(j*W);
+const wpos = new Float32Array(ring.length * 6);
+const wgeo = new THREE.BufferGeometry();
+const widx = []; const n = ring.length;
+for (let r = 0; r < n; r++) { const q = (r+1)%n; widx.push(2*r, 2*q, 2*r+1, 2*q, 2*q+1, 2*r+1); }
+wgeo.setAttribute('position', new THREE.BufferAttribute(wpos, 3)); wgeo.setIndex(widx);
+const walls = new THREE.Mesh(wgeo, new THREE.MeshStandardMaterial({ color: 0x8a6646, emissive: 0x3a2618, roughness: .95, side: THREE.DoubleSide }));
+scene.add(walls);
+const plate = new THREE.Mesh(new THREE.BoxGeometry(LX + 24, 6, LY + 24), new THREE.MeshStandardMaterial({ color: dark ? 0x2a251e : 0xe4dccd, roughness: .8 }));
+plate.position.y = -3; plate.receiveShadow = true; scene.add(plate);
+
+function applyEx(ex) {
+  const f = ex / EX0;
+  for (let k = 0; k < W*H; k++) pos[3*k+1] = BASE + (z0[k] - BASE) * f;
+  geo.attributes.position.needsUpdate = true; geo.computeVertexNormals();
+  for (let r = 0; r < n; r++) { const k = ring[r];
+    wpos[6*r]=pos[3*k]; wpos[6*r+1]=pos[3*k+1]; wpos[6*r+2]=pos[3*k+2];
+    wpos[6*r+3]=pos[3*k]; wpos[6*r+4]=0; wpos[6*r+5]=pos[3*k+2]; }
+  wgeo.attributes.position.needsUpdate = true; wgeo.computeVertexNormals();
+}
+applyEx(EX0);
+
+scene.add(new THREE.HemisphereLight(0xfff6e8, 0x5a4a3a, 0.9));
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+sun.position.set(-260, 320, -180); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -260, right: 260, top: 220, bottom: -220, near: 10, far: 1200 });
+scene.add(sun);
+
+// etichette
+const labels = [[document.getElementById('t1'), __P1__], [document.getElementById('t2'), __P2__]];
+const v = new THREE.Vector3();
+function placeLabels() {
+  for (const [el, [u, w]] of labels) {
+    const i = Math.round(u * (W-1)), j = Math.round(w * (H-1)), k = j*W+i;
+    v.set(pos[3*k], pos[3*k+1] + 4, pos[3*k+2]).project(camera);
+    const vis = v.z < 1;
+    el.style.display = vis ? 'block' : 'none';
+    el.style.left = ((v.x + 1) / 2 * innerWidth) + 'px';
+    el.style.top = ((1 - v.y) / 2 * innerHeight) + 'px';
+  }
+}
+
+const views = {
+  v3d: [new THREE.Vector3(-70, 340, 470), new THREE.Vector3(0, 10, 0)],
+  vtop: [new THREE.Vector3(0, 720, 1), new THREE.Vector3(0, 0, 0)],
+  vside: [new THREE.Vector3(30, 95, 480), new THREE.Vector3(0, 25, 0)],
+};
+function setView(name) {
+  const [cp, tg] = views[name]; camera.position.copy(cp); controls.target.copy(tg); controls.update();
+  for (const b of ['v3d','vtop','vside']) document.getElementById(b).classList.toggle('on', b === name);
+}
+for (const b of ['v3d','vtop','vside']) document.getElementById(b).onclick = () => setView(b);
+const spinBtn = document.getElementById('spin');
+spinBtn.onclick = () => { controls.autoRotate = !controls.autoRotate; spinBtn.classList.toggle('on', controls.autoRotate); };
+controls.autoRotateSpeed = 0.8;
+const ex = document.getElementById('ex'), exv = document.getElementById('exv');
+ex.oninput = () => { applyEx(+ex.value); exv.textContent = (+ex.value).toFixed(1).replace('.', ',') + '×'; };
+
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = innerWidth < innerHeight ? 55 : 35;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+const hv = new URLSearchParams(location.search).get('view');
+setView(views[hv] ? hv : 'v3d');
+document.getElementById('load').remove();
+if (new URLSearchParams(location.search).has('still')) { controls.update(); renderer.render(scene, camera); placeLabels(); }
+else renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); placeLabels(); });
+window.__ready = true;
+</script>
+</body>
+</html>
